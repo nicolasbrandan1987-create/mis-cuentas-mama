@@ -387,17 +387,35 @@ const fmt = (v,mon)=>{
   return s;
 };
 const hoyISO = ()=> new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
-const mesDe = iso => (iso||"").slice(0,7);
+const mesDe = iso => normFecha(iso).slice(0,7);
+const normFecha = v=>{
+  if(!v) return "";
+  let s=String(v).trim();
+  // si viene como fecha ISO con hora o formato largo, tomar solo la parte de fecha
+  if(s.indexOf("T")>=0) s=s.split("T")[0];
+  // formato DD/MM/YYYY -> YYYY-MM-DD
+  if(s.indexOf("/")>=0){
+    const p=s.split("/");
+    if(p.length===3){
+      if(p[2].length===4) s=p[2]+"-"+("0"+p[1]).slice(-2)+"-"+("0"+p[0]).slice(-2);
+      else s=p[0]+"-"+("0"+p[1]).slice(-2)+"-"+("0"+p[2]).slice(-2);
+    }
+  }
+  return s.slice(0,10);
+};
+const MESES_CORTO=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const MESES_LARGO=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const nombreMes = ym=>{
   if(!ym) return "";
-  const [a,m]=ym.split("-");
-  const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  return meses[+m-1]+" "+a;
+  const p=String(ym).split("-");
+  const m=+p[1]; if(!m||m<1||m>12) return ym;
+  return MESES_LARGO[m-1]+" "+p[0];
 };
 const cortoMes = ym=>{
-  const [a,m]=ym.split("-");
-  const meses=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-  return meses[+m-1];
+  if(!ym) return "";
+  const p=String(ym).split("-");
+  const m=+p[1]; if(!m||m<1||m>12) return ym;
+  return MESES_CORTO[m-1];
 };
 function toast(msg){
   const t=document.getElementById("toast");
@@ -434,7 +452,7 @@ async function cargarTodo(){
   try{
     const r=await jsonp({accion:"listar"});
     GASTOS=(r.gastos||[]).map(g=>({
-      id:String(g.id), fecha:g.fecha, monto:+g.monto, moneda:g.moneda||"ARS",
+      id:String(g.id), fecha:normFecha(g.fecha), monto:+g.monto, moneda:g.moneda||"ARS",
       categoria:g.categoria, medio:g.medio||"", desc:g.desc||""
     }));
     if(r.config){ CFG=Object.assign(CFG,{
